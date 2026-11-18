@@ -13,43 +13,42 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v4
-
       - name: Expand initial source bundle
-        if: ${{ hashFiles('source.tar.xz.b64') != '' }}
+        if: ${{ hashFiles('source.part0') != '' && hashFiles('source.part1') != '' && hashFiles('source.part2') != '' && hashFiles('source.part3') != '' }}
         run: |
-          base64 --decode source.tar.xz.b64 | tar -xJf -
+          cat source.part0 source.part1 source.part2 source.part3 | base64 --decode | tar -xJf -
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git rm -f source.tar.xz.b64
+          git rm -f source.part0 source.part1 source.part2 source.part3
           if ! git diff --cached --quiet; then
             git commit -m "Import complete EveryFile Android source"
             git push origin HEAD:${{ github.ref_name }}
           fi
 
       - name: Set up Java
+        if: ${{ hashFiles('app/build.gradle') != '' }}
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
       - name: Set up Android SDK
+        if: ${{ hashFiles('app/build.gradle') != '' }}
         uses: android-actions/setup-android@v3
-
       - name: Install platform SDK
+        if: ${{ hashFiles('app/build.gradle') != '' }}
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
-
       - name: Set up Gradle
+        if: ${{ hashFiles('app/build.gradle') != '' }}
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
-
       - name: Build installable debug APK
+        if: ${{ hashFiles('app/build.gradle') != '' }}
         run: gradle --no-daemon --stacktrace assembleDebug
-
       - name: Upload APK
+        if: ${{ success() && hashFiles('app/build.gradle') != '' }}
         uses: actions/upload-artifact@v4
-        if: success()
         with:
           name: EveryFile-APK
           path: app/build/outputs/apk/debug/app-debug.apk
